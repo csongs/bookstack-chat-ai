@@ -35,8 +35,8 @@ class AiChatController
         $api = new AiChatApi();
 
         return response()->eventStream(function () use ($api, $query) {
-            foreach ($api->stream($query) as $text) {
-                yield ['text' => $text];
+            foreach ($api->stream($query) as $chunk) {
+                yield $chunk;
             }
         });
     }

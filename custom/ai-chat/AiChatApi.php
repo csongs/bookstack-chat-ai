@@ -182,8 +182,19 @@ PROMPT;
 
     public function stream(string $query): \Generator
     {
-        // placeholder — will be replaced in Task 6
-        $systemPrompt = AiChatSettings::get('ai-chat-system-prompt', '');
-        yield from $this->streamDriver($query, $systemPrompt);
+        $searcher = new BookStackSearcher();
+
+        for ($round = 0; $round < 2; $round++) {
+            $keywords = $this->generateKeywords($query);
+            $pages    = $searcher->search($keywords);
+
+            if (!empty($pages) && $this->isRelevant($pages, $query)) {
+                yield from $this->streamWithContext($query, $pages);
+                return;
+            }
+        }
+
+        // No relevant documents found after 2 rounds
+        yield ['text' => '很抱歉，在知識庫中找不到與您問題相關的文件。請嘗試換個方式提問，或直接聯繫相關人員。'];
     }
 }
