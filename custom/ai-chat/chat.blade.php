@@ -205,9 +205,15 @@ class AiChatManager {
             let data;
             try { data = JSON.parse(raw); } catch { return; }
 
+            if (data.sources) {
+                if (typingEl.parentNode) typingEl.replaceWith(botBubble);
+                this.renderSources(botBubble.querySelector('.ai-msg__bubble'), data.sources);
+                return;
+            }
+
             if (data.text) {
                 if (typingEl.parentNode) typingEl.replaceWith(botBubble);
-                botBubble.querySelector('.ai-msg__bubble').textContent += data.text;
+                botBubble.querySelector('.ai-msg__bubble').append(data.text);
                 window.scrollTo(0, document.body.scrollHeight);
             }
         });
@@ -245,6 +251,34 @@ class AiChatManager {
 
     escHtml(str) {
         return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    renderSources(bubble, sources) {
+        if (!sources || !sources.length) return;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'ai-sources';
+        wrap.innerHTML = `
+            <div class="ai-sources-header">
+                <strong>參考來源</strong>
+                <button class="ai-sources-toggle js-sources-toggle">展開</button>
+            </div>
+            <div class="response-sources collapsed">
+                <div class="entity-list">
+                    ${sources.map(s => `
+                        <a href="${this.escHtml(s.url)}" target="_blank" rel="noopener"
+                           class="entity-list-item page">
+                            <span class="icon">📄</span>
+                            <div>
+                                <h4>${this.escHtml(s.book)}</h4>
+                                <span>${this.escHtml(s.name)}</span>
+                            </div>
+                        </a>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        bubble.appendChild(wrap);
     }
 }
 
