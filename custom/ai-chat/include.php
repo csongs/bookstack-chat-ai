@@ -15,6 +15,7 @@ foreach (glob(__DIR__ . '/drivers/*Driver.php') as $file) {
 }
 
 include_once 'AiChatApi.php';
+include_once 'BookStackSearcher.php';
 include_once 'AiChatController.php';
 
 Theme::listen(ThemeEvents::THEME_REGISTER_VIEWS, function (ThemeViews $themeViews) {
