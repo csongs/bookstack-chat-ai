@@ -1,0 +1,50 @@
+networks:
+  default:
+    external: true
+    name: shared-net
+
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: bookstack
+      MYSQL_USER: bookstack
+      MYSQL_PASSWORD: bookstack
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "bookstack", "-pbookstack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  km:
+    image: solidnerd/bookstack:26.5.1
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      APP_URL: http://localhost:8080
+      APP_PROXIES: "*"
+      DB_HOST: db
+      DB_DATABASE: bookstack
+      DB_USERNAME: bookstack
+      DB_PASSWORD: bookstack
+      AUTH_METHOD: standard
+      APP_KEY: SomeRandomStringWith32Characters
+      APP_THEME: custom
+      QUERY_API_ENDPOINT: http://app:3030
+    volumes:
+      - uploads:/var/www/bookstack/storage/uploads/
+      - logs:/var/www/bookstack/storage/logs/
+      - ./custom:/var/www/bookstack/themes/custom:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
+  uploads:
+  logs:
