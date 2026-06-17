@@ -108,6 +108,36 @@ PROMPT;
         return array_values(array_filter(array_map('strval', $data)));
     }
 
+    /**
+     * Ask the AI whether the retrieved pages are relevant to the user's question.
+     *
+     * @param object[] $pages  Each has ->name and ->book_name properties
+     */
+    public function isRelevant(array $pages, string $query): bool
+    {
+        if (empty($pages)) return false;
+
+        $titles = implode("\n", array_map(
+            fn($p) => "- {$p->name}（書：{$p->book_name}）",
+            $pages
+        ));
+
+        $system = <<<PROMPT
+以下是從知識庫搜到的頁面標題，判斷是否與使用者問題相關。
+只回傳 JSON：{"relevant": true} 或 {"relevant": false}
+不要解釋，不要其他文字。
+PROMPT;
+
+        $user = "使用者問題：{$query}\n\n搜到的頁面：\n{$titles}";
+
+        $raw  = $this->callJson($user, $system);
+        $raw  = preg_replace('/^```(?:json)?\s*/i', '', $raw);
+        $raw  = preg_replace('/\s*```$/', '', trim($raw));
+        $data = json_decode($raw, true);
+
+        return (bool) ($data['relevant'] ?? false);
+    }
+
     public function stream(string $query): \Generator
     {
         // placeholder — will be replaced in Task 6
