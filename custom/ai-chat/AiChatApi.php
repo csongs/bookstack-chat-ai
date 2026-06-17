@@ -82,6 +82,48 @@ class AiChatApi
         return trim($result);
     }
 
+    /**
+     * Stream an AI answer using retrieved pages as context.
+     * Yields: ['sources' => [...]] first, then ['text' => '...'] chunks.
+     *
+     * @param object[] $pages  Results from BookStackSearcher::search()
+     */
+    private function streamWithContext(string $query, array $pages): \Generator
+    {
+        // Build sources payload for the frontend
+        $appUrl  = rtrim(env('APP_URL', ''), '/');
+        $sources = array_map(fn($p) => [
+            'name' => $p->name,
+            'book' => $p->book_name,
+            'url'  => "{$appUrl}/books/{$p->book_slug}/page/{$p->slug}",
+        ], $pages);
+
+        yield ['sources' => $sources];
+
+        // Build context block — each page truncated to ~1500 chars
+        $contextBlocks = array_map(function ($p) {
+            $excerpt = mb_substr(strip_tags($p->text ?? ''), 0, 1500);
+            return "--- 頁面：{$p->name}（書：{$p->book_name}）---\n{$excerpt}";
+        }, $pages);
+
+        $contextText = implode("\n\n", $contextBlocks);
+
+        $basePrompt   = AiChatSettings::get('ai-chat-system-prompt', '');
+        $systemPrompt = <<<PROMPT
+{$basePrompt}
+
+你是公司內部知識庫助理。請根據以下文件回答問題。
+若文件中找不到答案，請明確說明。不要憑空捏造文件中沒有的資訊。
+
+[知識庫文件]
+{$contextText}
+PROMPT;
+
+        foreach ($this->streamDriver($query, $systemPrompt) as $text) {
+            yield ['text' => $text];
+        }
+    }
+
     // ── Public API ─────────────────────────────────────────────
 
     /**
