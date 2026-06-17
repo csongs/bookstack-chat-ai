@@ -23,19 +23,9 @@ class BookStackSearcher
 
         return DB::table('pages as p')
             ->join('books as b', 'b.id', '=', 'p.book_id')
-            ->select([
-                'p.id',
-                'p.name',
-                'p.slug',
-                'p.text',
-                'b.name as book_name',
-                'b.slug as book_slug',
-                DB::raw('MATCH(p.name, p.text) AGAINST(? IN BOOLEAN MODE) as score'),
-            ])
-            ->whereRaw(
-                'MATCH(p.name, p.text) AGAINST(? IN BOOLEAN MODE)',
-                [$queryStr, $queryStr]
-            )
+            ->select(['p.id', 'p.name', 'p.slug', 'p.text', 'b.name as book_name', 'b.slug as book_slug'])
+            ->selectRaw('MATCH(p.name, p.text) AGAINST(? IN BOOLEAN MODE) as score', [$queryStr])
+            ->whereRaw('MATCH(p.name, p.text) AGAINST(? IN BOOLEAN MODE)', [$queryStr])
             ->where('p.draft', false)
             ->orderByDesc('score')
             ->limit($limit)
